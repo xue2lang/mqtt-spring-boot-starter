@@ -4,10 +4,7 @@ import com.github.tocrhz.mqtt.properties.ConnectionProperties;
 import com.github.tocrhz.mqtt.properties.MqttProperties;
 import com.github.tocrhz.mqtt.subscriber.MqttSubscriber;
 import com.github.tocrhz.mqtt.subscriber.TopicPair;
-import org.eclipse.paho.client.mqttv3.IMqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.util.Assert;
 
@@ -49,7 +46,7 @@ public abstract class MqttConfigurer {
 
 
     /**
-     * 创建客户端.
+     * 创建异步客户端(默认).
      *
      * @param clientId 客户端ID
      * @param options  MqttConnectOptions
@@ -59,7 +56,6 @@ public abstract class MqttConfigurer {
     public IMqttAsyncClient postCreate(String clientId, MqttConnectOptions options) throws MqttException {
         return new MqttAsyncClient(options.getServerURIs()[0], clientId, new MemoryPersistence());
     }
-
     /**
      * 在创建客户端后, 订阅主题前, 修改订阅的主题.
      *

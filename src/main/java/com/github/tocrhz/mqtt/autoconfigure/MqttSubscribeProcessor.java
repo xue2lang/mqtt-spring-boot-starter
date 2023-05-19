@@ -33,7 +33,9 @@ public class MqttSubscribeProcessor implements BeanPostProcessor {
             Method[] methods = bean.getClass().getMethods();
             for (Method method : methods) {
                 if (method.isAnnotationPresent(MqttSubscribe.class)) {
+                    //订阅配置
                     SubscriberModel model = SubscriberModel.of(method.getAnnotation(MqttSubscribe.class));
+                    //订阅对象
                     SUBSCRIBERS.add(MqttSubscriber.of(model, bean, method));
                 }
             }

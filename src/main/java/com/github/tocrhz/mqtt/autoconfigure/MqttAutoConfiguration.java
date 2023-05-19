@@ -72,9 +72,11 @@ public class MqttAutoConfiguration {
         // init property before connected.
         configurer.beforeResolveEmbeddedValue(MqttSubscribeProcessor.SUBSCRIBERS);
         for (MqttSubscriber subscriber : MqttSubscribeProcessor.SUBSCRIBERS) {
+            //组装topic信息，如：正则、路径参数
             subscriber.afterInit(factory::resolveEmbeddedValue);
         }
         configurer.afterResolveEmbeddedValue(MqttSubscribeProcessor.SUBSCRIBERS);
+        //连接mqtt
         MqttConnector connector = new MqttConnector();
         connector.start(properties, configurer);
         return connector;

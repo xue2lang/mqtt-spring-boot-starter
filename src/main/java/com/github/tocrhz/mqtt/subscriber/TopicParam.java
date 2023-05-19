@@ -4,6 +4,9 @@ package com.github.tocrhz.mqtt.subscriber;
  * @author tjheiska
  */
 class TopicParam {
+    /**
+     * 参数名称， eg：topic={projectId}/{userName}，则name=projectId、name=userName
+     */
     private String name;
     private int at; // 正则匹配的参数位置.
 

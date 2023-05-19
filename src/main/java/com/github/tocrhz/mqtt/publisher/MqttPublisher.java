@@ -17,7 +17,7 @@ import java.util.Objects;
  * @author tocrhz
  */
 public class MqttPublisher {
-    private final static Logger log = LoggerFactory.getLogger(MqttPublisher.class);
+    private static final Logger log = LoggerFactory.getLogger(MqttPublisher.class);
 
     /**
      * 发送消息到指定主题 qos=1
@@ -28,7 +28,7 @@ public class MqttPublisher {
      * @throws NullPointerException     if client not exists
      */
     public void send(String topic, Object payload) {
-        send(MqttConnector.DefaultClientId, topic, payload, MqttConnector.DefaultPublishQos, false, null);
+        send(MqttConnector.DEFAULT_CLIENT_ID, topic, payload, MqttConnector.DEFAULT_PUBLISH_QOS, false, null);
     }
 
     /**
@@ -41,7 +41,7 @@ public class MqttPublisher {
      * @throws NullPointerException     if client not exists
      */
     public void send(String topic, Object payload, IMqttActionListener callback) {
-        send(MqttConnector.DefaultClientId, topic, payload, MqttConnector.DefaultPublishQos, false, callback);
+        send(MqttConnector.DEFAULT_CLIENT_ID, topic, payload, MqttConnector.DEFAULT_PUBLISH_QOS, false, callback);
     }
 
     /**
@@ -83,7 +83,7 @@ public class MqttPublisher {
      * @throws NullPointerException     if client not exists
      */
     public void send(String topic, Object payload, int qos, boolean retained) {
-        send(MqttConnector.DefaultClientId, topic, payload, qos, retained, null);
+        send(MqttConnector.DEFAULT_CLIENT_ID, topic, payload, qos, retained, null);
     }
 
     /**
@@ -113,7 +113,7 @@ public class MqttPublisher {
      * @throws NullPointerException     if client not exists
      */
     public void send(String topic, Object payload, int qos, boolean retained, IMqttActionListener callback) {
-        send(MqttConnector.DefaultClientId, topic, payload, qos, retained, callback);
+        send(MqttConnector.DEFAULT_CLIENT_ID, topic, payload, qos, retained, callback);
     }
 
 
@@ -148,6 +148,7 @@ public class MqttPublisher {
         MqttMessage message = new MqttMessage();
         message.setPayload(payload);
         message.setQos(qos);
+        //保留消息用处，详见：https://www.emqx.com/zh/blog/mqtt5-features-retain-message
         message.setRetained(retained);
         return message;
     }

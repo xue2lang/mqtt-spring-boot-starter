@@ -22,8 +22,23 @@ public class TopicPair {
     private final static String STRING_PARAM = "([^/]+)";
     private final static String NUMBER_PARAM = "(\\\\d+(:?\\\\.\\\\d+)?)";
 
+    /**
+     * topic信息：<br>
+     * 1. topic={projectId}/{userName} ——> +/+ <br>
+     * 2. topic={projectId}/userName ——> +/userName <br>
+     * 3. topic=a/b ——> a/b
+     */
     private String topic;
+    /**
+     * topic对应的正则表达式：<br>
+     * 1. topic={projectId}/{userName} ——> ^(\d+(:?\.\d+)?)/([^/]+)$ <br>
+     * 2. topic=a/{userName} ——> a/([^/]+)$ <br>
+     * 3. topic=a/b ——> null
+     */
     private Pattern pattern;
+    /**
+     * topic参数信息
+     */
     private TopicParam[] params;
     private int qos;
     private boolean shared;
@@ -38,10 +53,13 @@ public class TopicPair {
         Assert.isTrue(qos >= 0, "qos min value is 0");
         Assert.isTrue(qos <= 2, "qos max value is 2");
         TopicPair topicPair = new TopicPair();
+        //eg：@MqttSubscribe(value="test/{id}", shared=true, groups="gp")
         if (topic.contains("{")) {
             LinkedList<TopicParam> params = new LinkedList<>();
+            //生成topic对应的正则表达式
             topicPair.pattern = toPattern(topic, params, paramTypeMap);
             topicPair.params = params.toArray(new TopicParam[0]);
+            //eg：{projectId}/{userName} -> +/+
             topicPair.topic = TO_TOPIC.matcher(topic).replaceAll("+");
         } else {
             topicPair.topic = topic;
@@ -54,6 +72,7 @@ public class TopicPair {
     }
 
     private static Pattern toPattern(String topic, LinkedList<TopicParam> params, HashMap<String, Class<?>> paramTypeMap) {
+        //eg：topic={projectId}/{userName} ，return：^(\d+(:?\.\d+)?)/([^/]+)$
         String pattern = replaceSymbols(topic);
         Matcher matcher = TO_PATTERN.matcher(pattern);
         StringBuffer buffer = new StringBuffer("^");
@@ -104,12 +123,14 @@ public class TopicPair {
 
     public HashMap<String, String> getPathValueMap(String topic) {
         HashMap<String, String> map = new HashMap<>();
+        //是否为多匹配方式
         if (pattern != null) {
+            //再次确认topic是否匹配
             Matcher matcher = pattern.matcher(topic);
             if (matcher.find()) {
                 for (TopicParam param : params) {
-                    String group = matcher.group(param.getAt());
-                    map.put(param.getName(), group);
+                    //提取topic中 多级topic信息，得到指定参数对应的真实topic
+                    map.put(param.getName(), matcher.group(param.getAt()));
                 }
             }
         }

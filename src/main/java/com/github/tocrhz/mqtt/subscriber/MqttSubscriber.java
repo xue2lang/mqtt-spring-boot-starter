@@ -19,9 +19,17 @@ import java.util.function.Function;
  * @author tocrhz
  */
 public class MqttSubscriber {
-    private final static Logger log = LoggerFactory.getLogger(MqttSubscriber.class);
+    private static final Logger log = LoggerFactory.getLogger(MqttSubscriber.class);
 
+    /**
+     * 消费消息
+     *
+     * @param clientId client id
+     * @param topic message topic
+     * @param mqttMessage receive message
+     */
     public void accept(String clientId, String topic, MqttMessage mqttMessage) {
+        //topic是否匹配
         Optional<TopicPair> matched = matched(clientId, topic);
         if (matched.isPresent()) {
             try {
@@ -39,23 +47,32 @@ public class MqttSubscriber {
     private String[] clientIds;
     private Object bean;
     private Method method;
+    /**
+     * 订阅方法中所有参数信息
+     */
     private LinkedList<ParameterModel> parameters;
     private int order;
 
     private final LinkedList<TopicPair> topics = new LinkedList<>();
 
+    /**
+     * 避免重复解析
+     */
     private boolean hasResolveEmbeddedValue;
 
     public void afterInit(Function<String, String> function) {
+        //是否已解析过
         if (hasResolveEmbeddedValue) {
             return;
         }
         hasResolveEmbeddedValue = true;
         if (function != null) {
+            //替换clientId，eg：@MqttSubscribe(clients={"${mqtt.client-id:abc}", "test/${mqtt.client-id:abc}/+"})
             String[] clients = subscribe.clients();
             for (int i = 0; i < clients.length; i++) {
                 clients[i] = function.apply(clients[i]);
             }
+            //替换订阅topic，eg：@MqttSubscribe(value={"${mqtt.topics:xxx}"})
             String[] value = subscribe.value();
             for (int i = 0; i < value.length; i++) {
                 value[i] = function.apply(value[i]);
@@ -64,6 +81,7 @@ public class MqttSubscriber {
 
         HashMap<String, Class<?>> paramTypeMap = new HashMap<>();
         this.parameters.stream()
+                //@NamedValue("id") String id
                 .filter(param -> param.getName() != null)
                 .forEach(param -> paramTypeMap.put(param.getName(), param.getType()));
         this.clientIds = subscribe.clients();
@@ -75,6 +93,7 @@ public class MqttSubscriber {
         subscriber.bean = bean;
         subscriber.method = method;
         subscriber.subscribe = subscribe;
+        //订阅方法设置的参数信息
         subscriber.parameters = ParameterModel.of(method);
         if (method.isAnnotationPresent(Order.class)) {
             Order order = method.getAnnotation(Order.class);
@@ -94,12 +113,21 @@ public class MqttSubscriber {
             temps.add(TopicPair.of(topics[i], qos[i], shared[i], groups[i], paramTypeMap));
         }
         this.topics.addAll(temps);
+        //topic优先级
         this.topics.sort(Comparator.comparingInt(TopicPair::order));
     }
 
+    /**
+     * 设置每一个topic对应的Qos信息
+     *
+     * @param topics topic collection
+     * @param qos    topic Qos
+     * @return Qos Array
+     */
     private int[] fillQos(String[] topics, int[] qos) {
         int topic_len = topics.length;
         int qos_len = qos.length;
+        //topic数量 > Qos数量：多余的topic服用最后一个topic的Qos
         if (topic_len > qos_len) {
             int[] temp = new int[topic_len];
             System.arraycopy(qos, 0, temp, 0, qos_len);
@@ -116,6 +144,7 @@ public class MqttSubscriber {
     private boolean[] fillShared(String[] topics, boolean[] shared) {
         int topic_len = topics.length;
         int qos_len = shared.length;
+        //topic数量 > Qos数量：多余的topic服用最后一个topic的shard配置
         if (topic_len > qos_len) {
             boolean[] temp = new boolean[topic_len];
             System.arraycopy(shared, 0, temp, 0, qos_len);
@@ -132,6 +161,7 @@ public class MqttSubscriber {
     private String[] fillGroups(String[] topics, String[] groups) {
         int topic_len = topics.length;
         int qos_len = groups.length;
+        //topic数量 > Qos数量：多余的topic服用最后一个topic的group配置
         if (topic_len > qos_len) {
             String[] temp = new String[topic_len];
             System.arraycopy(groups, 0, temp, 0, qos_len);
@@ -155,6 +185,13 @@ public class MqttSubscriber {
         return Optional.empty();
     }
 
+    /**
+     * 填充方法体参数
+     * @param topicPair topic message
+     * @param topic topic
+     * @param mqttMessage receive message
+     * @return method parameter array
+     */
     private Object[] fillParameters(TopicPair topicPair, String topic, MqttMessage mqttMessage) {
         HashMap<String, String> pathValueMap = topicPair.getPathValueMap(topic);
         LinkedList<Object> objects = new LinkedList<>();
@@ -168,7 +205,7 @@ public class MqttSubscriber {
             } else if (parameter.isSign() && mqttMessage != null) {
                 value = MqttConversionService.getSharedInstance().fromBytes(mqttMessage.getPayload(), target, converters);
             } else if (name != null) {
-                if (pathValueMap.containsKey(name)){
+                if (pathValueMap.containsKey(name)) {
                     value = fromTopic(pathValueMap.get(name), target);
                 }
             } else if (target == String.class) {
