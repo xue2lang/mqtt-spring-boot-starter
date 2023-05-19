@@ -37,7 +37,9 @@ final class ParameterModel {
      */
     private String name;
     /**
-     * 默认值
+     * 默认值：<br>
+     * 1. 基本数据类型：默认值 <br>
+     * 2. 引用数据类型：null
      */
     private Object defaultValue;
     /**

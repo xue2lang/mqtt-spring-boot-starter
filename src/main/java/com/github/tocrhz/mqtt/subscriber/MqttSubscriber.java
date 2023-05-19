@@ -35,10 +35,10 @@ public class MqttSubscriber {
             try {
                 method.invoke(bean, fillParameters(matched.get(), topic, mqttMessage));
             } catch (NullParameterException ignored) {
-                // 如果参数为空则不执行方法
-                log.debug("Fill parameters caught null exception.");
+                // 如果参数要求必填值，但真实为空，则不执行方法
+                log.warn("Fill parameters caught null exception. client is {}, topic is {}", clientId, topic);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                log.error("Message handler error: {}", e.getMessage(), e);
+                log.error("Message handler error, client is {}, topic is {}", clientId, topic, e);
             }
         }
     }
@@ -193,26 +193,37 @@ public class MqttSubscriber {
      * @return method parameter array
      */
     private Object[] fillParameters(TopicPair topicPair, String topic, MqttMessage mqttMessage) {
+        //key-路径参数，value-真实值
         HashMap<String, String> pathValueMap = topicPair.getPathValueMap(topic);
         LinkedList<Object> objects = new LinkedList<>();
+        //遍历订阅方法中所有参数信息，得到真实的值
         for (ParameterModel parameter : parameters) {
+            //当前参数类型
             Class<?> target = parameter.getType();
+            //路径参数变量名称
             String name = parameter.getName();
+            //转换器
             LinkedList<Converter<Object, Object>> converters = parameter.getConverters();
             Object value = null;
             if (target == MqttMessage.class) {
+                //直接使用MqttMessage接收消息
                 value = mqttMessage;
             } else if (parameter.isSign() && mqttMessage != null) {
+                //转换为具体的消息类型
                 value = MqttConversionService.getSharedInstance().fromBytes(mqttMessage.getPayload(), target, converters);
             } else if (name != null) {
+                //根据路径参数获取值
                 if (pathValueMap.containsKey(name)) {
                     value = fromTopic(pathValueMap.get(name), target);
                 }
             } else if (target == String.class) {
+                //topic信息
                 value = topic;
             } else if (target.getClassLoader() != null && mqttMessage != null) {
+                //其他类型参数，如：包装类Integer、UserInfo对象
                 value = MqttConversionService.getSharedInstance().fromBytes(mqttMessage.getPayload(), target, converters);
             }
+            //校验参数值是否必传
             if (value == null) {
                 if (parameter.isRequired()) {
                     throw new NullParameterException();

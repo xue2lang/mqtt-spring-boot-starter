@@ -121,6 +121,11 @@ public class TopicPair {
         }
     }
 
+    /**
+     * 返回路径参数对应的真实值
+     * @param topic real topic
+     * @return key-@NameValue ，value-real value from topic
+     */
     public HashMap<String, String> getPathValueMap(String topic) {
         HashMap<String, String> map = new HashMap<>();
         //是否为多匹配方式
